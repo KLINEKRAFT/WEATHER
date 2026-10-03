@@ -244,3 +244,32 @@ test('fits narrow screens and passes core accessibility checks', async ({ page }
     );
   }
 });
+
+test('customizes colors and card order, persists collapsed cards, and resets', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.current-temperature')).toBeVisible();
+  await page.getByRole('button', { name: 'Customize', exact: true }).click();
+  await page.getByRole('button', { name: 'Sage colors' }).click();
+  await page.getByLabel('Font color', { exact: true }).fill('#193020');
+  await page.getByRole('button', { name: 'Move Details up' }).click();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page.locator('.dashboard-card').nth(1)).toHaveAttribute('data-card', 'conditions');
+  await page.getByRole('button', { name: 'Collapse Details', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Weather details', exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Expand Details', exact: true })).toBeVisible();
+  await expect(page.locator('.dashboard-card').nth(1)).toHaveAttribute('data-card', 'conditions');
+  expect(await page.locator('html').evaluate((el) => el.style.getPropertyValue('--text'))).toBe(
+    '#193020',
+  );
+  await page.getByRole('button', { name: 'Customize', exact: true }).click();
+  await page.getByRole('button', { name: 'Reset layout', exact: true }).click();
+  await page.getByRole('button', { name: 'Use light / dark theme colors', exact: true }).click();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page.locator('.dashboard-card').nth(1)).toHaveAttribute('data-card', 'hourly');
+  await expect(page.getByRole('button', { name: 'Collapse Details', exact: true })).toBeVisible();
+  await page.screenshot({
+    path: `/tmp/weather-updated-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+});
