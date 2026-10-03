@@ -58,11 +58,13 @@ export function HourlyForecast({
   weather,
   units,
   expanded = false,
+  compact = false,
   onExpand,
 }: {
   weather: Weather;
   units: Units;
   expanded?: boolean;
+  compact?: boolean;
   onExpand?: () => void;
 }) {
   const [metric, setMetric] = useState<'temperature' | 'rain' | 'wind'>('temperature');
@@ -106,7 +108,7 @@ export function HourlyForecast({
         : `${speed(h.wind, units)}`;
   return (
     <section
-      className={`panel hourly-panel ${expanded ? 'expanded-hourly' : ''}`}
+      className={`panel hourly-panel ${expanded ? 'expanded-hourly' : ''} ${compact ? 'compact-hourly' : ''}`}
       aria-label="Hourly forecast"
     >
       <div className="panel-heading">

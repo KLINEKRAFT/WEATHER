@@ -45,6 +45,7 @@ import WeatherIcon from './WeatherIcon';
 import { DailyForecast, HourlyForecast } from './Forecast';
 import SearchDialog from './SearchDialog';
 import Conditions from './Conditions';
+import Dashboard, { useAppearance } from './Dashboard';
 
 const Radar = lazy(() => import('./Radar'));
 type View = 'today' | 'hourly' | 'daily' | 'radar';
@@ -73,6 +74,7 @@ export default function App() {
   const [theme, setTheme] = useState(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   );
+  const { colors, setColors } = useAppearance(theme);
   const [view, setView] = useState<View>('today');
   const [searchOpen, setSearchOpen] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -225,7 +227,10 @@ export default function App() {
             <button
               className="icon-button theme-toggle"
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+              onClick={() => {
+                setColors(null);
+                setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+              }}
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={19} />}
             </button>
@@ -378,32 +383,42 @@ export default function App() {
           ) : (
             <div className="forecast-content" key={`${placeKey(place)}:${view}`}>
               {view === 'today' && (
-                <>
-                  <CurrentWeather weather={weather} units={units} />
-                  <HourlyForecast
-                    weather={weather}
-                    units={units}
-                    onExpand={() => navigate('hourly')}
-                  />
-                  <div className="forecast-grid">
-                    <DailyForecast
-                      weather={weather}
-                      units={units}
-                      onExpand={() => navigate('daily')}
-                    />
-                    <Suspense
-                      fallback={<div className="panel radar-placeholder">Loading radar…</div>}
-                    >
-                      <Radar
-                        place={place}
-                        zone={zone}
-                        theme={theme}
-                        onExpand={() => navigate('radar')}
+                <Dashboard
+                  colors={colors}
+                  setColors={setColors}
+                  theme={theme}
+                  cards={{
+                    current: <CurrentWeather weather={weather} units={units} />,
+                    hourly: (
+                      <HourlyForecast
+                        weather={weather}
+                        units={units}
+                        compact
+                        onExpand={() => navigate('hourly')}
                       />
-                    </Suspense>
-                  </div>
-                  <Conditions weather={weather} units={units} />
-                </>
+                    ),
+                    conditions: <Conditions weather={weather} units={units} />,
+                    daily: (
+                      <DailyForecast
+                        weather={weather}
+                        units={units}
+                        onExpand={() => navigate('daily')}
+                      />
+                    ),
+                    radar: (
+                      <Suspense
+                        fallback={<div className="panel radar-placeholder">Loading radar…</div>}
+                      >
+                        <Radar
+                          place={place}
+                          zone={zone}
+                          theme={theme}
+                          onExpand={() => navigate('radar')}
+                        />
+                      </Suspense>
+                    ),
+                  }}
+                />
               )}
               {view === 'hourly' && (
                 <>

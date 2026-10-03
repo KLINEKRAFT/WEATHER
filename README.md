@@ -76,3 +76,7 @@ src/SearchDialog.tsx Accessible location search
 src/Conditions.tsx Weather detail cards and daylight graphic
 src/styles.css     Responsive layout, design tokens and light/dark themes
 ```
+
+## Dashboard customization
+
+The Today view uses a bold, compact temperature and hourly strip. Choose **Customize** to pick a color preset, set background and font colors, or move forecast cards up and down. Tap a card heading to collapse or expand it. Color, order, and collapse preferences are saved locally on each device. **Reset layout** restores all cards; **Use light / dark theme colors** clears custom colors. The header theme toggle also returns to theme colors. Detailed hourly charts remain available on the Hourly tab.
