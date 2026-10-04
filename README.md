@@ -4,12 +4,12 @@ A clearer view of your day. A minimal, responsive weather app with quiet typogra
 
 ## What’s inside
 
-- Current temperature, conditions, feels-like, daily high/low, and a forecast-based summary.
-- A scrollable 24-hour chart with temperature, precipitation probability, and wind views; a detailed 48-hour table.
+- Current temperature, conditions, feels-like, daily high/low.
+- A compact hourly strip and an interactive 48-hour temperature score with selected-hour rain, wind, humidity, and feels-like readings.
 - Ten daily forecasts with comparable temperature ranges and expandable details.
 - Animated precipitation radar, a history slider, zoom, recenter, and clearly labeled timestamps.
 - City/postal-code search, opt-in device location, and up to eight saved places.
-- Light/dark mode, Fahrenheit/Celsius, self-hosted DM Sans, reduced-motion support, keyboard search (`/` or `⌘/Ctrl K`), and a mobile navigation bar.
+- Light/dark mode, Fahrenheit/Celsius, self-hosted Space Grotesk, reduced-motion support, keyboard search (`/` or `⌘/Ctrl K`), and a bottom navigation bar at every screen size.
 - Wind, gusts, humidity, dew point, visibility, UV, pressure, precipitation totals, and sunrise/sunset.
 - Active U.S. National Weather Service alerts, including full instructions and official-source links.
 
@@ -48,7 +48,7 @@ The repository includes `vercel.json` with all build settings. Import **KLINEKRA
 | Node.js               | 24.x or 22.x    |
 | Environment variables | None required   |
 
-The `codex/minimal-weather` branch contains the initial implementation. Connect it for a preview, then merge into `main` for the production deployment. Vercel supplies HTTPS, which device location requires outside localhost. The app is a client-side static build; it needs no database or server functions.
+The repository is connected to Vercel. Changes merged into `main` automatically deploy to production. Vercel supplies HTTPS, which device location requires outside localhost. The app is a client-side static build; it needs no database or server functions.
 
 ## Data sources and limits
 
@@ -79,4 +79,19 @@ src/styles.css     Responsive layout, design tokens and light/dark themes
 
 ## Dashboard customization
 
-The Today view uses a bold, compact temperature and hourly strip. Choose **Customize** to pick a color preset, set background and font colors, or move forecast cards up and down. Tap a card heading to collapse or expand it. Color, order, and collapse preferences are saved locally on each device. **Reset layout** restores all cards; **Use light / dark theme colors** clears custom colors. The header theme toggle also returns to theme colors. Detailed hourly charts remain available on the Hourly tab.
+The Today view uses a bold temperature and compact hourly strip. **Settings** in the bottom bar contains search, location, units, appearance, radar styling, colors, and card order. Tap card headings to collapse them. Preferences persist per browser; **Reset layout** restores all cards. **Use light / dark theme colors** clears custom colors, as does the day/night toggle.
+
+Day defaults to White Rock (`#EAE0D2`); night defaults to Mine Shaft (`#2D2D2D`). Presets also include Akaroa (`#D7C9AE`) and Barley Corn (`#A68763`). The reference's White Rock HEX and RGB values differ slightly; the printed HEX is used.
+
+Radar fills the screen above the bottom bar, with map controls and mandatory attribution overlaid. Blue, amber, and monochrome options are display filters on the original RainViewer tiles and the matching legend, not different radar measurements or future forecasts. Overlay opacity is adjustable. Tomorrow.io offers custom-gradient weather tiles as a potential future provider; it requires separate credentials/plan setup and is not integrated.
+
+Hourly uses a temperature score: bar height shows relative temperature across the upcoming 48-hour range; exact values remain visible. Ten-day rows share a common low/high temperature scale and fill the available screen. Daily detail expands on tap. No visible page titles or promotional footer; provider credits live under Settings.
+
+View changes participate in browser history. Swipe right on a non-interactive area, or from the left edge, to return to the previous view. Charts, sliders, and maps keep their own gestures; native browser back also works. On initial load there is no in-app previous view.
+
+## Design sources
+
+- [Space Grotesk, Florian Karsten](https://fonts.floriankarsten.com/space-grotesk): open-source geometric sans serif with distinctive numerals and UI readability.
+- [Vega warming-stripe example](https://vega.github.io/vega/examples/warming-stripes/): inspiration for reducing weather data to repeated graphic marks. The hourly score depicts forecast temperatures, not climate anomalies.
+- [RainViewer transition notes](https://www.rainviewer.com/api/transition-faq.html): API limitations and original palette.
+- [Tomorrow.io weather maps](https://docs.tomorrow.io/reference/get-map-tile): an alternative with custom gradient support.

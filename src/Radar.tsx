@@ -34,12 +34,16 @@ export default function Radar({
   theme,
   expanded = false,
   onExpand,
+  styleMode = 'blue',
+  opacity = 0.72,
 }: {
   place: Place;
   zone: string;
   theme: string;
   expanded?: boolean;
   onExpand?: () => void;
+  styleMode?: string;
+  opacity?: number;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -56,6 +60,11 @@ export default function Radar({
   const [baseError, setBaseError] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const initialPlace = useRef(place);
+  const opacityRef = useRef(opacity);
+  useEffect(() => {
+    opacityRef.current = opacity;
+    overlay.current?.setOpacity(opacity);
+  }, [opacity]);
   const pause = () => setPlaying(false);
 
   useEffect(() => {
@@ -69,7 +78,7 @@ export default function Radar({
       attributionControl: true,
     }).setView([latitude, longitude], 6);
     map.current = instance;
-    L.control.zoom({ position: 'bottomright' }).addTo(instance);
+    L.control.zoom({ position: expanded ? 'topright' : 'bottomright' }).addTo(instance);
     instance.attributionControl.setPrefix(false);
     marker.current = L.circleMarker([latitude, longitude], {
       radius: 5,
@@ -165,6 +174,7 @@ export default function Radar({
     setTileError('');
     // 512 px tiles + a one-level zoom offset reduce tile requests. Native source zoom stays <= 7.
     const layer = L.tileLayer(`${manifest.host}${frame.path}/512/{z}/{x}/{y}/2/1_1.png`, {
+      className: 'radar-data-tiles',
       tileSize: 512,
       zoomOffset: -1,
       maxNativeZoom: 8,
@@ -200,7 +210,7 @@ export default function Radar({
       }
       if (overlay.current !== layer) overlay.current?.remove();
       overlay.current = layer;
-      layer.setOpacity(0.72);
+      layer.setOpacity(opacityRef.current);
       marker.current?.bringToFront();
       setDisplayTime(frame.time);
     });
@@ -228,7 +238,7 @@ export default function Radar({
   const age = frames.length ? Math.round((Date.now() / 1000 - frames.at(-1)!.time) / 60) : null;
   return (
     <section
-      className={`panel radar-panel ${expanded ? 'radar-expanded' : ''}`}
+      className={`panel radar-panel radar-style-${['blue', 'amber', 'mono'].includes(styleMode) ? styleMode : 'blue'} ${expanded ? 'radar-expanded' : ''}`}
       aria-label="Weather radar"
     >
       <div className="radar-heading">
@@ -259,7 +269,7 @@ export default function Radar({
         />
         <span className="map-time">
           {displayTime
-            ? `${clock(displayTime, zone, true)} · ${zone.split('/').at(-1)?.replaceAll('_', ' ')}`
+            ? `Past radar · ${clock(displayTime, zone, true)} · ${zone.split('/').at(-1)?.replaceAll('_', ' ')}`
             : 'Loading radar…'}
         </span>
         <button

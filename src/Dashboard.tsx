@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, SlidersHorizontal, X } from 'lucide-react';
+import { useEffect, useState, type ReactNode, type Dispatch, type SetStateAction } from 'react';
+import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { readStorage, writeStorage } from './weather';
 
 const defaults = ['current', 'hourly', 'conditions', 'daily', 'radar'] as const;
@@ -11,8 +11,8 @@ const labels: Record<Card, string> = {
   daily: 'Daily forecast',
   radar: 'Radar',
 };
-type Layout = { order: Card[]; collapsed: Card[] };
-type Colors = { background: string; text: string } | null;
+export type Layout = { order: Card[]; collapsed: Card[] };
+export type Colors = { background: string; text: string } | null;
 function initialLayout(): Layout {
   const value = readStorage<Partial<Layout> | null>('layout:v1', null);
   const order = Array.isArray(value?.order)
@@ -66,44 +66,26 @@ export function useAppearance(theme: string) {
     }
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', colors?.background ?? (theme === 'dark' ? '#242424' : '#eeeeec'));
+      ?.setAttribute('content', colors?.background ?? (theme === 'dark' ? '#2d2d2d' : '#eae0d2'));
   }, [colors, theme]);
   return { colors, setColors };
 }
+export function useLayout() {
+  const [layout, setLayout] = useState(initialLayout);
+  useEffect(() => writeStorage('layout:v1', layout), [layout]);
+  return { layout, setLayout };
+}
 export default function Dashboard({
   cards,
-  colors,
-  setColors,
-  theme,
+  layout,
+  setLayout,
 }: {
   cards: Record<Card, ReactNode>;
-  colors: Colors;
-  setColors: (colors: Colors) => void;
-  theme: string;
+  layout: Layout;
+  setLayout: Dispatch<SetStateAction<Layout>>;
 }) {
-  const [layout, setLayout] = useState(initialLayout);
-  const [customizing, setCustomizing] = useState(false);
-  const [announcement, setAnnouncement] = useState('');
-  useEffect(() => writeStorage('layout:v1', layout), [layout]);
-  function move(id: Card, direction: number) {
-    setLayout((previous) => {
-      const order = [...previous.order];
-      const index = order.indexOf(id);
-      const next = index + direction;
-      if (next < 0 || next >= order.length) return previous;
-      [order[index], order[next]] = [order[next], order[index]];
-      return { ...previous, order };
-    });
-    setAnnouncement(`${labels[id]} moved ${direction < 0 ? 'up' : 'down'}.`);
-  }
   return (
     <div className="dashboard">
-      <button className="customize-trigger text-button" onClick={() => setCustomizing(true)}>
-        <SlidersHorizontal size={15} /> Customize
-      </button>
-      <span className="sr-only" role="status">
-        {announcement}
-      </span>
       <div className="dashboard-cards">
         {layout.order.map((id) => {
           const collapsed = layout.collapsed.includes(id);
@@ -141,72 +123,55 @@ export default function Dashboard({
           );
         })}
       </div>
-      {customizing && (
-        <CustomizeDialog
-          colors={colors}
-          setColors={setColors}
-          theme={theme}
-          layout={layout}
-          move={move}
-          reset={() => {
-            setLayout({ order: [...defaults], collapsed: [] });
-            setAnnouncement('Default layout restored.');
-          }}
-          onClose={() => setCustomizing(false)}
-        />
-      )}
     </div>
   );
 }
-function CustomizeDialog({
+export function SettingsPanel({
   colors,
   setColors,
   theme,
   layout,
-  move,
-  reset,
-  onClose,
+  setLayout,
+  children,
 }: {
   colors: Colors;
   setColors: (colors: Colors) => void;
   theme: string;
   layout: Layout;
-  move: (id: Card, direction: number) => void;
-  reset: () => void;
-  onClose: () => void;
+  setLayout: Dispatch<SetStateAction<Layout>>;
+  children: ReactNode;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const background = colors?.background ?? (theme === 'dark' ? '#242424' : '#eeeeec');
-  const text = colors?.text ?? (theme === 'dark' ? '#f0f0ec' : '#242424');
-  useEffect(() => {
-    const element = dialog.current;
-    element?.showModal();
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      element?.close();
-      document.body.style.overflow = previous;
-    };
-  }, []);
+  const [announcement, setAnnouncement] = useState('');
+  function move(id: Card, direction: number) {
+    setLayout((previous) => {
+      const order = [...previous.order];
+      const index = order.indexOf(id);
+      const next = index + direction;
+      if (next < 0 || next >= order.length) return previous;
+      [order[index], order[next]] = [order[next], order[index]];
+      return { ...previous, order };
+    });
+    setAnnouncement(`${labels[id]} moved ${direction < 0 ? 'up' : 'down'}.`);
+  }
+  const reset = () => {
+    setLayout({ order: [...defaults], collapsed: [] });
+    setAnnouncement('Default layout restored.');
+  };
+  const background = colors?.background ?? (theme === 'dark' ? '#2d2d2d' : '#eae0d2');
+  const text = colors?.text ?? (theme === 'dark' ? '#eae0d2' : '#2d2d2d');
   return (
-    <dialog
-      ref={dialog}
-      className="customize-dialog"
-      aria-labelledby="customize-title"
-      onCancel={onClose}
-    >
-      <div className="customize-heading">
-        <h2 id="customize-title">Make it yours.</h2>
-        <button className="icon-button" aria-label="Close customization" onClick={onClose}>
-          <X size={20} />
-        </button>
-      </div>
-      <p>Colors and layout are saved on this device.</p>
+    <section className="settings-panel" aria-label="Settings">
+      <span className="sr-only" role="status">
+        {announcement}
+      </span>
+      {children}
       <h3>Colors</h3>
       <div className="color-presets">
         {[
-          ['Paper', '#eeeeec', '#242424'],
-          ['Ink', '#242424', '#f0f0ec'],
+          ['White Rock', '#eae0d2', '#2d2d2d'],
+          ['Mine Shaft', '#2d2d2d', '#eae0d2'],
+          ['Akaroa', '#d7c9ae', '#2d2d2d'],
+          ['Barley Corn', '#a68763', '#171717'],
           ['Sand', '#eee5d4', '#40382d'],
           ['Sage', '#dce4d8', '#263b2d'],
           ['Blue', '#dce7ef', '#203749'],
@@ -275,10 +240,7 @@ function CustomizeDialog({
         <button className="text-button" onClick={reset}>
           Reset layout
         </button>
-        <button className="primary-button" onClick={onClose}>
-          Done
-        </button>
       </div>
-    </dialog>
+    </section>
   );
 }

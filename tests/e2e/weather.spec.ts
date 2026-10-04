@@ -17,9 +17,9 @@ const manifest = {
     })),
   },
 };
-function nav(page: Page, info: TestInfo) {
+function nav(page: Page, _info: TestInfo) {
   return page.getByRole('navigation', {
-    name: info.project.name === 'mobile' ? 'Mobile forecast views' : 'Forecast views',
+    name: 'Forecast views',
     exact: true,
   });
 }
@@ -66,8 +66,8 @@ test('shows actual-shaped forecasts, converts units, and persists preferences', 
   await expect(page.locator('.current-temperature')).toContainText('67°');
   await expect(page.locator('.hour-column')).toHaveCount(24);
   await expect(page.locator('.day-row')).toHaveCount(5);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: '°C', exact: true }).click();
-  await expect(page.locator('.current-temperature')).toContainText('20°');
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await page.reload();
   await expect(page.locator('.current-temperature')).toContainText('20°');
@@ -81,11 +81,14 @@ test('navigates to hourly, daily and radar views with functional controls', asyn
   await page.goto('/');
   await expect(page.locator('.current-temperature')).toBeVisible();
   await nav(page, info).getByRole('button', { name: 'Hourly', exact: true }).click();
-  await expect(page.locator('.hourly-table-row')).toHaveCount(24);
+  await expect(page.locator('.score-hour')).toHaveCount(24);
   await page.getByRole('button', { name: 'Next 24 hours', exact: true }).click();
-  await expect(page.getByText('24–48 hours ahead')).toBeVisible();
-  await page.getByRole('button', { name: 'Precipitation', exact: true }).click();
-  await expect(page.locator('.temperature-chart')).toHaveClass(/rain/);
+  await expect(page.getByRole('button', { name: 'Next 24 hours', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.locator('.score-hour').nth(3).click();
+  await expect(page.locator('.score-hour').nth(3)).toHaveAttribute('aria-pressed', 'true');
   await nav(page, info).getByRole('button', { name: '10 days', exact: true }).click();
   await expect(page.locator('.day-row')).toHaveCount(10);
   await page.locator('.day-row').first().click();
@@ -114,10 +117,11 @@ test('searches cities, preserves keyboard access, and remembers a saved place', 
   await input.press('Enter');
   await expect(page.getByRole('dialog')).not.toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('London');
-  await expect(page.getByText('In-app weather alerts cover U.S. locations.')).toBeVisible();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Save location', exact: true }).click();
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('London');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Unsave location' })).toBeVisible();
   await page.keyboard.press('/');
   await page.keyboard.press('Escape');
@@ -143,7 +147,7 @@ test('shows a real error instead of demo weather when the forecast is unavailabl
 }) => {
   await page.route('https://api.open-meteo.com/**', (route) => route.abort());
   await page.goto('/');
-  await expect(page.getByText('A brief break in the forecast.')).toBeVisible();
+  await expect(page.getByText('Forecast unavailable.', { exact: true })).toBeVisible();
   await expect(page.locator('.current-temperature')).toHaveCount(0);
   await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ json: raw }));
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
@@ -158,9 +162,13 @@ test('labels a cached forecast and never confuses failed alert checks with all c
   await page.route('https://api.open-meteo.com/**', (route) => route.abort());
   await page.route('https://api.weather.gov/**', (route) => route.abort());
   await page.reload();
-  await expect(page.locator('.forecast-notice')).toContainText('Showing a saved or older forecast');
+  await expect(page.locator('.notice')).toContainText('Showing a saved or older forecast');
   await expect(page.locator('.current-temperature')).toBeVisible();
-  await expect(page.getByText('Weather alerts are unavailable right now.')).toBeVisible();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('.source-details summary').click();
+  await expect(page.locator('.source-details')).toContainText(
+    'Weather alerts are unavailable right now.',
+  );
   await expect(page.getByText(/No active NWS alerts/)).toHaveCount(0);
 });
 
@@ -230,7 +238,9 @@ test('fits narrow screens and passes core accessibility checks', async ({ page }
   expect(
     violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.map((n) => n.target) })),
   ).toEqual([]);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  await page.getByRole('button', { name: 'Today', exact: true }).click();
   const darkViolations = (
     await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
   ).violations;
@@ -248,11 +258,11 @@ test('fits narrow screens and passes core accessibility checks', async ({ page }
 test('customizes colors and card order, persists collapsed cards, and resets', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.current-temperature')).toBeVisible();
-  await page.getByRole('button', { name: 'Customize', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Sage colors' }).click();
   await page.getByLabel('Font color', { exact: true }).fill('#193020');
   await page.getByRole('button', { name: 'Move Details up' }).click();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'Today', exact: true }).click();
   await expect(page.locator('.dashboard-card').nth(1)).toHaveAttribute('data-card', 'conditions');
   await page.getByRole('button', { name: 'Collapse Details', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Weather details', exact: true })).toHaveCount(0);
@@ -262,14 +272,98 @@ test('customizes colors and card order, persists collapsed cards, and resets', a
   expect(await page.locator('html').evaluate((el) => el.style.getPropertyValue('--text'))).toBe(
     '#193020',
   );
-  await page.getByRole('button', { name: 'Customize', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Reset layout', exact: true }).click();
   await page.getByRole('button', { name: 'Use light / dark theme colors', exact: true }).click();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'Today', exact: true }).click();
   await expect(page.locator('.dashboard-card').nth(1)).toHaveAttribute('data-card', 'hourly');
   await expect(page.getByRole('button', { name: 'Collapse Details', exact: true })).toBeVisible();
   await page.screenshot({
     path: `/tmp/weather-updated-${test.info().project.name}.png`,
     fullPage: true,
   });
+});
+
+test('immersive views, palette defaults, radar styles, and swipe-back history', async ({
+  page,
+}, info) => {
+  await page.goto('/');
+  await expect(page.locator('.current-temperature')).toBeVisible();
+  await expect(page.locator('header, footer')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '°C', exact: true })).toHaveCount(0);
+  expect(
+    await page
+      .locator('html')
+      .evaluate((el) => getComputedStyle(el).getPropertyValue('--page').trim()),
+  ).toBe('#eae0d2');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  for (const name of ['Mine Shaft', 'White Rock', 'Akaroa', 'Barley Corn'])
+    await expect(page.getByRole('button', { name: `${name} colors` })).toBeVisible();
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  expect(
+    await page
+      .locator('html')
+      .evaluate((el) => getComputedStyle(el).getPropertyValue('--page').trim()),
+  ).toBe('#2d2d2d');
+  await page.getByRole('button', { name: 'Amber', exact: true }).click();
+  await page.getByRole('slider', { name: 'Radar opacity' }).fill('0.4');
+  await page.getByRole('button', { name: 'Radar', exact: true }).click();
+  await expect(page.locator('.radar-panel')).toHaveClass(/radar-style-amber/);
+  await expect(page.locator('.map-time')).not.toContainText('Loading');
+  const box = await page.locator('.radar-map').boundingBox();
+  const bar = await page.locator('.app-nav').boundingBox();
+  expect(box!.y).toBe(0);
+  expect(Math.abs(box!.height - bar!.y)).toBeLessThan(2);
+  await expect(page.locator('.radar-heading')).not.toBeVisible();
+  await expect(page.locator('.radar-caption')).not.toBeVisible();
+  await page.screenshot({ path: `/tmp/art-radar-${info.project.name}.png`, fullPage: true });
+  await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toBeVisible();
+  const zoom = await page.locator('.leaflet-control-zoom').boundingBox();
+  const playback = await page.locator('.radar-controls').boundingBox();
+  expect(zoom!.y + zoom!.height).toBeLessThan(playback!.y);
+  await page.goBack();
+  await expect(page.locator('.settings-panel')).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Radar opacity' })).toHaveValue('0.4');
+  await page.getByRole('button', { name: '10 days', exact: true }).click();
+  await page.screenshot({ path: `/tmp/art-daily-${info.project.name}.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Hourly', exact: true }).click();
+  await page.screenshot({ path: `/tmp/art-hourly-${info.project.name}.png`, fullPage: true });
+  await page
+    .locator('.weather-app')
+    .dispatchEvent('touchstart', { touches: [{ identifier: 1, clientX: 5, clientY: 250 }] });
+  await page
+    .locator('.weather-app')
+    .dispatchEvent('touchend', { changedTouches: [{ identifier: 1, clientX: 160, clientY: 260 }] });
+  await expect(page.locator('.full-daily')).toBeVisible();
+  await page.getByRole('button', { name: 'Today', exact: true }).click();
+  await page.screenshot({ path: `/tmp/art-today-${info.project.name}.png`, fullPage: true });
+});
+
+test('new forecast views remain accessible and do not overflow at 320px', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.current-temperature')).toBeVisible();
+  for (const theme of ['light', 'dark']) {
+    if (theme === 'dark') {
+      await page.getByRole('button', { name: 'Settings', exact: true }).click();
+      await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+    }
+    for (const view of ['Settings', 'Hourly', '10 days']) {
+      await page.getByRole('button', { name: view, exact: true }).click();
+      const violations = (
+        await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
+      ).violations;
+      expect(
+        violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) })),
+        `${theme} ${view}`,
+      ).toEqual([]);
+    }
+  }
+  await page.setViewportSize({ width: 320, height: 740 });
+  for (const view of ['Today', 'Hourly', '10 days', 'Settings', 'Radar']) {
+    await page.getByRole('button', { name: view, exact: true }).click();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      view,
+    ).toBe(true);
+  }
 });
