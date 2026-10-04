@@ -322,15 +322,10 @@ export function DailyForecast({
       aria-label="Daily forecast"
     >
       <SectionTitle
-        title={full ? 'A little perspective.' : 'The next few days'}
+        title={full ? '' : 'The next few days'}
         action={!full ? '10-day forecast' : undefined}
         onAction={onExpand}
       />
-      {full && (
-        <p className="section-description">
-          Ten days to plan around. Select a day for a closer look.
-        </p>
-      )}
       <div className="daily-rows">
         {days.map((d) => (
           <div className="day-item" key={d.time}>
@@ -341,7 +336,7 @@ export function DailyForecast({
               aria-controls={`detail-${d.time}`}
             >
               <span className="day-name">
-                <strong>{dayLabel(d.time, weather.timezone, undefined, full)}</strong>
+                <strong>{dayLabel(d.time, weather.timezone)}</strong>
                 {full && (
                   <small>
                     {new Intl.DateTimeFormat('en-US', {
@@ -379,7 +374,7 @@ export function DailyForecast({
         ))}
       </div>
       {!days.length && <p className="empty-inline">Refresh for a new daily forecast.</p>}
-      <div className="daily-footnote">
+      <div className={full ? 'sr-only' : 'daily-footnote'}>
         <span className="range-key" /> Daily low and high · Forecasts can change
       </div>
     </section>
